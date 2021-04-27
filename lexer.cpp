@@ -34,13 +34,23 @@ enum TOKENS_TYPE
 class Token
 {
 public:
+    static int curr_line;
+    static int curr_col;
+    static int tab_space;
+    static string::iterator file_begin;
+    static string::iterator file_iter;
+
     TOKENS_TYPE token;
     string lexeme;
+    int line;
+    int col;
 
     Token(TOKENS_TYPE type, string lex)
     {
         token = type;
         lexeme = lex;
+        line = curr_line;
+        col = std::distance(Token::file_begin, Token::file_iter) - curr_col + Token::tab_space;
     }
 
     string to_string()
@@ -49,6 +59,12 @@ public:
         return "{" + tokens_name[this->token] + ", " + this->lexeme + "}";
     }
 };
+
+int Token::curr_line = 1;
+int Token::curr_col = 1;
+int Token::tab_space = 1;
+string::iterator Token::file_iter;
+string::iterator Token::file_begin;
 
 bool is_dtype(const string &str)
 {
@@ -80,11 +96,23 @@ bool is_write(const string &str)
     return false;
 }
 
-Token next_token(string::iterator &curr, const string::iterator end)
+Token next_token(const string::iterator begin, string::iterator &curr, const string::iterator end)
 {
     // ignore whitespaces
     while (*curr == ' ' || *curr == '\n' || *curr == '\t')
+    {
+        if (*curr == '\n')
+        {
+            Token::curr_line++;
+            Token::curr_col = std::distance(begin, curr);
+            Token::tab_space = 1;
+        }
+
+        if (*curr == '\t')
+            Token::tab_space += 3;
+
         curr++;
+    }
 
     // analyse tokens that start with an alphabet
     if (isalpha(*curr))
@@ -204,6 +232,8 @@ Token next_token(string::iterator &curr, const string::iterator end)
                 curr_tok += *curr;
                 while (curr + 1 != end && curr + 2 != end && !(*(curr + 1) == '*' && *(curr + 2) == '/'))
                 {
+                    if (*curr == '\n')
+                        Token::curr_line++;
                     curr++;
                     curr_tok += *curr;
                 }
@@ -227,7 +257,7 @@ Token next_token(string::iterator &curr, const string::iterator end)
             return Token(CONST_LITERAL, "\'" + ch + "\'");
         }
         else
-            return Token(INVALID, "Invalid Constant Literal");
+            return Token(INVALID, "Incorrect Constant Literal");
 
     case '\"':
         if (curr + 1 != end)
@@ -240,14 +270,14 @@ Token next_token(string::iterator &curr, const string::iterator end)
             }
 
             if (curr + 1 == end)
-                return Token(INVALID, "Invalid String Token");
+                return Token(INVALID, "Incorrect String Literal");
 
             curr++;
             return Token(STRING, curr_tok + "\"");
         }
 
     default:
-        return Token(INVALID, "^");
+        return Token(INVALID, string(1, *curr));
     }
 }
 
@@ -257,30 +287,41 @@ int main()
     cout << "Please Enter file path for Go-- Source file." << endl;
     cin >> file_path;
 
-    file_path = "test.go";
+    if (file_path.find(string(".go")) == string::npos)
+    {
+        cout << "Please provide path to a go source file." << endl;
+        return 1;
+    }
+
     ifstream file(file_path);
     ofstream word_file("words.txt");
 
     if (!file.is_open())
     {
         cout << "File open() failed." << endl;
+        cout << "Exiting ... " << endl;
         return 1;
     }
 
     string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    Token::file_begin = str.begin();
 
-    string::iterator file_iter;
-
-    int count = 0;
-    for (file_iter = str.begin(); file_iter != str.end(); file_iter++)
+    int token_count = 0;
+    for (Token::file_iter = str.begin(); Token::file_iter != str.end(); Token::file_iter++)
     {
-        count += 1;
-        Token my_token = next_token(file_iter, str.end());
+        token_count += 1;
+        Token my_token = next_token(str.begin(), Token::file_iter, str.end());
+        if (my_token.token == INVALID)
+        {
+            cout << "[ln: " << my_token.curr_line << ", col: " << my_token.col << "] Token: " << my_token.to_string() << endl;
+            cout << "Exiting ... " << endl;
+            return 1;
+        }
         cout << my_token.to_string() << endl;
         word_file << my_token.to_string() << endl;
     }
 
-    cout << "Total number of tokens: " << count << endl;
+    cout << "Total number of tokens: " << token_count << endl;
 
     return 0;
 }
