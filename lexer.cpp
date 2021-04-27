@@ -123,7 +123,7 @@ Token next_token(const string::iterator begin, string::iterator &curr, const str
             curr++;
             curr_tok += *curr;
         }
-
+        // check if current word is any keyword or not
         if (is_dtype(curr_tok))
             return Token(DATA_TYPE, curr_tok);
         else if (is_decision(curr_tok))
@@ -137,7 +137,7 @@ Token next_token(const string::iterator begin, string::iterator &curr, const str
         else if (curr_tok == "while")
             return Token(LOOP, curr_tok);
         else
-            return Token(IDENTIFIER, curr_tok);
+            return Token(IDENTIFIER, curr_tok); // it's an identifier if not a keyword
     }
 
     // analyse tokens that start with a digit
@@ -151,7 +151,10 @@ Token next_token(const string::iterator begin, string::iterator &curr, const str
             curr++;
         }
 
-        return Token(NUMBER, curr_tok);
+        if (isalpha(*curr))
+            return Token(INVALID, "Incorect Number Token");
+        else
+            return Token(NUMBER, curr_tok);
     }
 
     // analyse tokens that start with symbols
@@ -203,17 +206,6 @@ Token next_token(const string::iterator begin, string::iterator &curr, const str
     case '+':
         return Token(ARITH_OPS, string("+"));
     case '-':
-        if (curr + 1 != end && isdigit(*(curr + 1)))
-        {
-            string curr_tok(1, *curr);
-            while (curr + 1 != end && isdigit(*(curr + 1)))
-            {
-                curr++;
-                curr_tok += *curr;
-            }
-
-            return Token(NUMBER, curr_tok);
-        }
         return Token(ARITH_OPS, string("-"));
     case '*':
         return Token(ARITH_OPS, string("*"));
@@ -251,7 +243,7 @@ Token next_token(const string::iterator begin, string::iterator &curr, const str
         return Token(ARITH_OPS, string("/"));
     case '\'':
         if (curr + 1 != end && isalpha(*(curr + 1)) && curr + 2 != end && *(curr + 2) == '\'')
-        {
+        {   // check for one letter constant literal
             string ch(1, *(curr + 1));
             curr += 2;
             return Token(CONST_LITERAL, "\'" + ch + "\'");
@@ -261,7 +253,7 @@ Token next_token(const string::iterator begin, string::iterator &curr, const str
 
     case '\"':
         if (curr + 1 != end)
-        {
+        {   // check for n-length string literal
             string curr_tok(1, *curr);
             while (curr + 1 != end && *(curr + 1) != '\"')
             {
@@ -276,7 +268,7 @@ Token next_token(const string::iterator begin, string::iterator &curr, const str
             return Token(STRING, curr_tok + "\"");
         }
 
-    default:
+    default:    // incase no valid token found
         return Token(INVALID, string(1, *curr));
     }
 }
