@@ -1,3 +1,6 @@
+// 17L-4125 Hamza Murad
+// 17L-6315 Muhammad Wasiq
+
 #include <iostream>
 #include <streambuf>
 #include <fstream>
@@ -96,23 +99,8 @@ bool is_write(const string &str)
     return false;
 }
 
-Token next_token(const string::iterator begin, string::iterator &curr, const string::iterator end)
+Token next_token(string::iterator &curr, const string::iterator end)
 {
-    // ignore whitespaces
-    while (*curr == ' ' || *curr == '\n' || *curr == '\t')
-    {
-        if (*curr == '\n')
-        {
-            Token::curr_line++;
-            Token::curr_col = std::distance(begin, curr);
-            Token::tab_space = 1;
-        }
-
-        if (*curr == '\t')
-            Token::tab_space += 3;
-
-        curr++;
-    }
 
     // analyse tokens that start with an alphabet
     if (isalpha(*curr))
@@ -301,8 +289,25 @@ int main()
     int token_count = 0;
     for (Token::file_iter = str.begin(); Token::file_iter != str.end(); Token::file_iter++)
     {
+        // ignore white spaces in the source file
+        if (*Token::file_iter == ' ' || *Token::file_iter == '\n' || *Token::file_iter == '\t')
+        {
+            if (*Token::file_iter == '\n')
+            {
+                Token::curr_line++;
+                Token::curr_col = std::distance(str.begin(), Token::file_iter); // num of chars from start to new line
+                Token::tab_space = 1;   // reset tab spaces counter
+            }
+
+            if (*Token::file_iter == '\t')
+                Token::tab_space += 3;  // inc column location according to 4-spaces tabs
+
+            continue;
+        }
+
+        // collect next token
         token_count += 1;
-        Token my_token = next_token(str.begin(), Token::file_iter, str.end());
+        Token my_token = next_token(Token::file_iter, str.end());
         if (my_token.token == INVALID)
         {
             cout << "[ln: " << my_token.curr_line << ", col: " << my_token.col << "] Token: " << my_token.to_string() << endl;
