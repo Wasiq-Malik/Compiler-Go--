@@ -33,6 +33,38 @@ enum TOKENS_TYPE
     INVALID
 };
 
+void RetStatement();
+void IfStatement();
+void InputStatement();
+void ExpPrime();
+void Term();
+void F();
+void TermPrime();
+void FuncDec();
+void Variable();
+void Param();
+void AnyCode();
+void DataType();
+void String();
+void RelationOP();
+void Character();
+void Num();
+void Identifier();
+void Statement();
+void MultiDec();
+void Operand();
+void LogicalOperand();
+void ConditionPrime();
+void PrintType();
+void PrintPrime();
+void IF();
+void Elif();
+void Else();
+void VariableDec();
+void VarAssign();
+void WhileLoop();
+void PrintStatement();
+
 class Token
 {
 public:
@@ -112,6 +144,9 @@ bool is_write(const string &str)
 
 Token next_token(string::iterator &curr, const string::iterator end)
 {
+    if (curr != Token::file_begin)
+        curr++;
+
     // ignore white spaces in the source file
     while (*curr == ' ' || *curr == '\n' || *curr == '\t')
     {
@@ -119,11 +154,11 @@ Token next_token(string::iterator &curr, const string::iterator end)
         {
             Token::curr_line++;
             Token::curr_col = std::distance(Token::file_begin, curr); // num of chars from start to new line
-            Token::tab_space = 1;   // reset tab spaces counter
+            Token::tab_space = 1;                                     // reset tab spaces counter
         }
 
         if (*curr == '\t')
-            Token::tab_space += 3;  // inc column location according to 4-spaces tabs
+            Token::tab_space += 3; // inc column location according to 4-spaces tabs
 
         curr++;
     }
@@ -150,6 +185,8 @@ Token next_token(string::iterator &curr, const string::iterator end)
             return Token(READ, curr_tok);
         else if (curr_tok == "while")
             return Token(LOOP, curr_tok);
+        else if (curr_tok == "ret")
+            return Token(RETURN, curr_tok);
         else
             return Token(IDENTIFIER, curr_tok); // it's an identifier if not a keyword
     }
@@ -168,7 +205,10 @@ Token next_token(string::iterator &curr, const string::iterator end)
         if (isalpha(*curr))
             return Token(INVALID, "Incorect Number Token");
         else
+        {
+            curr--;
             return Token(NUMBER, curr_tok);
+        }
     }
 
     // analyse tokens that start with symbols
@@ -250,14 +290,14 @@ Token next_token(string::iterator &curr, const string::iterator end)
                     return Token(INVALID, curr_tok + string(1, *curr));
 
                 curr++; // move pointer to ahead of comment
-                return Token(COMMENTS, "/* */");
+                return next_token(curr, end);
             }
         }
 
         return Token(ARITH_OPS, string("/"));
     case '\'':
         if (curr + 1 != end && isalpha(*(curr + 1)) && curr + 2 != end && *(curr + 2) == '\'')
-        {   // check for one letter constant literal
+        { // check for one letter constant literal
             string ch(1, *(curr + 1));
             curr += 2;
             return Token(CONST_LITERAL, "\'" + ch + "\'");
@@ -267,7 +307,7 @@ Token next_token(string::iterator &curr, const string::iterator end)
 
     case '\"':
         if (curr + 1 != end)
-        {   // check for n-length string literal
+        { // check for n-length string literal
             string curr_tok(1, *curr);
             while (curr + 1 != end && *(curr + 1) != '\"')
             {
@@ -282,27 +322,38 @@ Token next_token(string::iterator &curr, const string::iterator end)
             return Token(STRING, curr_tok + "\"");
         }
 
-    default:    // incase no valid token found
+    default: // incase no valid token found
         return Token(INVALID, string(1, *curr));
     }
 }
 
+void throw_exception()
+{
+    cout << "[ln: " << Token::look.curr_line << ", col: " << Token::look.col << "] Invalid Token: " << Token::look.to_string() << endl;
+    throw "compiler crashed";
+}
+
 void match(string tok)
 {
+    cout << "Current look is: " << Token::look.to_string() << "\t\t";
     if (Token::look.lexeme == tok)
+    {
         Token::look = next_token(Token::file_iter, Token::file_end);
+        cout << "Next look is: " << Token::look.to_string() << endl;
+    }
     else
-        throw "Invalid tok";
+        throw_exception();
 }
 
 void Program()
 {
-    if(Token::file_iter != Token::file_end)
+    if (Token::file_iter != Token::file_end)
     {
         FuncDec();
         Program();
     }
-    else;
+    else
+        ;
 }
 
 //FUNCTION
@@ -328,38 +379,78 @@ void Param()
         Variable();
         Param();
     }
-    else if(Token::look.token == DATA_TYPE)
+    else if (Token::look.token == DATA_TYPE)
     {
         Variable();
+        Param();
     }
-    else;
+    else
+        ;
 }
-
 
 //Variable -> DataType : Identifier
 void Variable()
 {
     DataType();
-    match(":"); // Punctuation? this is fine
+    match(":");
     Identifier();
 }
 
-
-
 // AnyCode -> Statement ; AnyCode | ^
-void AnyCode()      // matching null is a b :clown:
+void AnyCode()
 {
-    Statement();
-    match(";");
-    AnyCode();
 
+    if (Token::look.token == DATA_TYPE || Token::look.token == IDENTIFIER || Token::look.lexeme == "while" ||
+        Token::look.lexeme == "print" || Token::look.lexeme == "println" || Token::look.lexeme == "In" ||
+        Token::look.lexeme == "if" || Token::look.lexeme == "ret")
+    {
+        Statement();
+        AnyCode();
+    }
+    else
+        ;
 }
 
-//Statement -> Exp | VariableDec | VarAssign | WhileLoop |
-    //PrintStatement | InputStatement | IFStatement | RetStatement
+//Statement ->  VariableDec | VarAssign | WhileLoop |
+//PrintStatement | InputStatement | IFStatement | RetStatement
 void Statement()
 {
+    if (Token::look.token == DATA_TYPE)
+    {
+        VariableDec();
+        match(";");
 
+    }
+    else if (Token::look.token == IDENTIFIER)
+    {
+        VarAssign();
+        match(";");
+    }
+    else if (Token::look.lexeme == "while")
+    {
+        WhileLoop();
+    }
+    else if (Token::look.lexeme == "print" || Token::look.lexeme == "println")
+    {
+        PrintStatement();
+        match(";");
+    }
+    else if (Token::look.lexeme == "In")
+    {
+        InputStatement();
+        match(";");
+    }
+    else if (Token::look.lexeme == "if")
+    {
+        IfStatement();
+    }
+    else if (Token::look.lexeme == "ret")
+    {
+        RetStatement();
+        match(";");
+    }
+    else
+        throw_exception();
 }
 
 // Exp -> Term Exp`
@@ -368,45 +459,52 @@ void Exp()
     Term();
     ExpPrime();
 }
+
 // Exp` -> + Term Exp` | - Term Exp` | ^
 void ExpPrime()
 {
-    if (Token::look.lexeme == "+"){
+    if (Token::look.lexeme == "+")
+    {
         match("+");
         Term();
         ExpPrime();
     }
-    else if (Token::look.lexeme == "-"){
+    else if (Token::look.lexeme == "-")
+    {
         match("-");
         Term();
         ExpPrime();
     }
-    else;
-
-
+    else
+        ;
 }
+
 // Term -> F Term`
 void Term()
 {
     F();
     TermPrime();
 }
+
 // Term` -> * F Term` | / F Term` | ^
 void TermPrime()
 {
-    if (Token::look.lexeme == "*"){
+    if (Token::look.lexeme == "*")
+    {
         match("*");
         F();
         TermPrime();
     }
-    else if (Token::look.lexeme == "/"){
+    else if (Token::look.lexeme == "/")
+    {
         match("/");
         F();
         TermPrime();
     }
-    else;
-
+    else
+        ;
 }
+
 // F -> Identifier | Num | ( Exp )
 void F()
 {
@@ -424,6 +522,8 @@ void F()
         Exp();
         match(")");
     }
+    else
+        throw_exception();
 }
 
 // VARIABLE DECLARATION
@@ -432,44 +532,63 @@ void VariableDec()
 {
     DataType();
     match(":");
+    Identifier();
     MultiDec();
-
 }
 
 // MultiDec -> Identifier | , Identifier MultiDec
 void MultiDec()
 {
-    if (Token::look.lexeme == ","){
+    if (Token::look.lexeme == ",")
+    {
         match(",");
         Identifier();
         MultiDec();
     }
-    else if (Token::look.token == IDENTIFIER)
-        Identifier();
-    else
-        throw "Invalid tok";
+    else;
 }
 
-
-// VarAssign -> Identifier :=  VarAssignPrime
+// VarAssign -> Identifier :=  Operand
 void VarAssign()
 {
-        Identifier();
-        match(":=");
-        VarAssignPrime();
+    Identifier();
+    match(":=");
+    Operand();
 }
-// VarAssignPrime - > Operand | EXP
-void VarAssignPrime()
+
+// Operand - > Character | EXP
+void Operand()
 {
-    //if (Token::look.token == )
+    if (Token::look.token == CONST_LITERAL)
+    {
+        Character();
+    }
+    else
+        Exp();
 }
 
 // LOGICAL EXPRESSION
-// Condition -> Operand RelationOP Operand | Operand
-void Condition(){}
+// Condition -> LogicalOperand ConditionPrime
+void Condition()
+{
+    LogicalOperand();
+    ConditionPrime();
+}
+
+// ConditionPrime> RelationOP LogicalOperand | ^
+void ConditionPrime()
+{
+    if (Token::look.token == RELATION_OPS)
+    {
+        RelationOP();
+        LogicalOperand();
+    }
+    else
+        ;
+}
 
 // Operand -> Identifier | Num | Character
-void Operand()
+void LogicalOperand()
 {
     if (Token::look.token == IDENTIFIER)
         Identifier();
@@ -478,7 +597,7 @@ void Operand()
     else if (Token::look.token == CONST_LITERAL)
         Character();
     else
-        throw "Invalid Tok";
+        throw_exception();
 }
 
 // LOOPS
@@ -491,20 +610,34 @@ void WhileLoop()
     match("{");
     AnyCode();
     match("}");
-
-
 }
 
 // I/O
-// PrintStatement -> PrintType ( Operand ) | PrintType ( String )
+// PrintStatement -> PrintType ( PrintPrime )
+void PrintStatement()
+{
+    PrintType();
+    match("(");
+    PrintPrime();
+    match(")");
+}
+
+// PrintPrime -> Operand | String
+void PrintPrime()
+{
+    if (Token::look.token == STRING)
+        String();
+    else
+        Operand();
+}
+
 // PrintType -> print | println
-void printType()
+void PrintType()
 {
     if (Token::look.lexeme == "print" || Token::look.lexeme == "println")
         Token::look = next_token(Token::file_iter, Token::file_end);
     else
         throw "Invalid tok, expected print";
-
 }
 
 // InputStatement -> In >> Identifier
@@ -526,7 +659,7 @@ void IfStatement()
 // IF -> if Condition : { AnyCode }
 void IF()
 {
-    IF();
+    match("if");
     Condition();
     match(":");
     match("{");
@@ -537,20 +670,23 @@ void IF()
 // Else -> else { AnyCode } | ^
 void Else()
 {
-    if (Token::look.lexeme == "else"){
-        Else();
+    if (Token::look.lexeme == "else")
+    {
+        match("else");
         match("{");
         AnyCode();
         match("}");
     }
-    else;
+    else
+        ;
 }
 
 // Elif -> elif Condition : { AnyCode } Elif | ^
 void Elif()
 {
-    if (Token::look.lexeme == "elif"){
-        Elif();
+    if (Token::look.lexeme == "elif")
+    {
+        match("elif");
         Condition();
         match(":");
         match("{");
@@ -558,15 +694,18 @@ void Elif()
         match("}");
         Elif();
     }
-    else;
-
+    else
+        ;
 }
 
 // RETURN
-// RetStatement -> ret Return`
-void RetStatement(){}
-// Return` -> Exp | Condition
-void ReturnPrime(){}
+// RetStatement -> ret Operand
+void RetStatement()
+{
+    match("ret");
+    Operand();
+}
+
 // TOKENS
 // DataType -> integer | char
 void DataType()
@@ -575,7 +714,7 @@ void DataType()
     if (Token::look.lexeme == "char" || Token::look.lexeme == "Integer")
         Token::look = next_token(Token::file_iter, Token::file_end);
     else
-        throw "Invalid tok";
+        throw_exception();
 }
 
 // Identifier -> [identifier lexeme]
@@ -584,7 +723,7 @@ void Identifier()
     if (Token::look.token == IDENTIFIER)
         Token::look = next_token(Token::file_iter, Token::file_end);
     else
-        throw "Invalid tok";
+        throw_exception();
 }
 
 // Num -> [num lexeme]
@@ -593,28 +732,29 @@ void Num()
     if (Token::look.token == NUMBER)
         Token::look = next_token(Token::file_iter, Token::file_end);
     else
-        throw "Invalid tok";
+        throw_exception();
 }
 
 // Character -> [char lexeme]
 void Character()
 {
-    if (Token::look.token == CONST_LITERAL){
+    if (Token::look.token == CONST_LITERAL)
+    {
         Token::look = next_token(Token::file_iter, Token::file_end);
     }
     else
-        throw "Invalid tok";
+        throw_exception();
 }
 
 // RelationOP -> > | < | >= |  <= |  /= | =
 void RelationOP()
 {
-    if (Token::look.token == RELATION_OPS){
+    if (Token::look.token == RELATION_OPS)
+    {
         Token::look = next_token(Token::file_iter, Token::file_end);
     }
     else
-        throw "Invalid tok";
-
+        throw_exception();
 }
 
 // String -> [string lexeme]
@@ -623,20 +763,14 @@ void String()
     if (Token::look.token == STRING)
         Token::look = next_token(Token::file_iter, Token::file_end);
     else
-        throw "Invalid tok";
+        throw_exception();
 }
-
-
-
-
-
 
 int main()
 {
     string file_path;
     cout << "Please Enter file path for Go-- Source file." << endl;
     cin >> file_path;
-
 
     if (file_path.find(string(".go")) == string::npos)
     {
@@ -659,8 +793,13 @@ int main()
     Token::file_end = str.end();
 
     Token::look = next_token(Token::file_iter, Token::file_end);
+    Program();
 
-
+    if (Token::file_iter != Token::file_end)
+    {
+        throw "eof error";
+        return 1;
+    }
 
     return 0;
 }

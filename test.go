@@ -9,17 +9,17 @@ func Integer: numPrint (Integer: num, Integer: length)
 	i := length;
 	while i > 0 :
 	{
-		first:= 0; /*this line contains a comment*/
+		first:= 0;
 		j := 1;
 		while j < i:
 		{
 			print(j);
 			j := j + 1;
 		}
-		if j == 1:{
+		if j = 1:{
 			print("one");
 		}
-		elif j==2:{
+		elif j=2:{
 			print("two");
 		}
 		else
