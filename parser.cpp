@@ -40,12 +40,22 @@ public:
     static int curr_col;
     static int tab_space;
     static string::iterator file_begin;
+    static string::iterator file_end;
     static string::iterator file_iter;
+    static Token look;
 
     TOKENS_TYPE token;
     string lexeme;
     int line;
     int col;
+
+    Token()
+    {
+        token = INVALID;
+        lexeme = "";
+        line = 0;
+        col = 0;
+    }
 
     Token(TOKENS_TYPE type, string lex)
     {
@@ -65,8 +75,10 @@ public:
 int Token::curr_line = 1;
 int Token::curr_col = 1;
 int Token::tab_space = 1;
+Token Token::look = Token();
 string::iterator Token::file_iter;
 string::iterator Token::file_begin;
+string::iterator Token::file_end;
 
 bool is_dtype(const string &str)
 {
@@ -275,6 +287,350 @@ Token next_token(string::iterator &curr, const string::iterator end)
     }
 }
 
+void match(string tok)
+{
+    if (Token::look.lexeme == tok)
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    else
+        throw "Invalid tok";
+}
+
+void Program()
+{
+    if(Token::file_iter != Token::file_end)
+    {
+        FuncDec();
+        Program();
+    }
+    else;
+}
+
+//FUNCTION
+//FuncDec -> func Variable ( Param ) { AnyCode }
+void FuncDec()
+{
+    match("func");
+    Variable();
+    match("(");
+    Param();
+    match(")");
+    match("{");
+    AnyCode();
+    match("}");
+}
+
+//Param -> DataType : Identifier  | , Variable Param | ^
+void Param()
+{
+    if (Token::look.token == PUNCTUATION)
+    {
+        match(",");
+        Variable();
+        Param();
+    }
+    else if(Token::look.token == DATA_TYPE)
+    {
+        Variable();
+    }
+    else;
+}
+
+
+//Variable -> DataType : Identifier
+void Variable()
+{
+    DataType();
+    match(":"); // Punctuation? this is fine
+    Identifier();
+}
+
+
+
+// AnyCode -> Statement ; AnyCode | ^
+void AnyCode()      // matching null is a b :clown:
+{
+    Statement();
+    match(";");
+    AnyCode();
+
+}
+
+//Statement -> Exp | VariableDec | VarAssign | WhileLoop |
+    //PrintStatement | InputStatement | IFStatement | RetStatement
+void Statement()
+{
+
+}
+
+// Exp -> Term Exp`
+void Exp()
+{
+    Term();
+    ExpPrime();
+}
+// Exp` -> + Term Exp` | - Term Exp` | ^
+void ExpPrime()
+{
+    if (Token::look.lexeme == "+"){
+        match("+");
+        Term();
+        ExpPrime();
+    }
+    else if (Token::look.lexeme == "-"){
+        match("-");
+        Term();
+        ExpPrime();
+    }
+    else;
+
+
+}
+// Term -> F Term`
+void Term()
+{
+    F();
+    TermPrime();
+}
+// Term` -> * F Term` | / F Term` | ^
+void TermPrime()
+{
+    if (Token::look.lexeme == "*"){
+        match("*");
+        F();
+        TermPrime();
+    }
+    else if (Token::look.lexeme == "/"){
+        match("/");
+        F();
+        TermPrime();
+    }
+    else;
+
+}
+// F -> Identifier | Num | ( Exp )
+void F()
+{
+    if (Token::look.token == IDENTIFIER)
+    {
+        Identifier();
+    }
+    else if (Token::look.token == NUMBER)
+    {
+        Num();
+    }
+    else if (Token::look.lexeme == "(")
+    {
+        match("(");
+        Exp();
+        match(")");
+    }
+}
+
+// VARIABLE DECLARATION
+// VariableDec -> Datatype :  MultiDec
+void VariableDec()
+{
+    DataType();
+    match(":");
+    MultiDec();
+
+}
+
+// MultiDec -> Identifier | , Identifier MultiDec
+void MultiDec()
+{
+    if (Token::look.lexeme == ","){
+        match(",");
+        Identifier();
+        MultiDec();
+    }
+    else if (Token::look.token == IDENTIFIER)
+        Identifier();
+    else
+        throw "Invalid tok";
+}
+
+
+// VarAssign -> Identifier :=  VarAssignPrime
+void VarAssign()
+{
+        Identifier();
+        match(":=");
+        VarAssignPrime();
+}
+// VarAssignPrime - > Operand | EXP
+void VarAssignPrime()
+{
+    //if (Token::look.token == )
+}
+
+// LOGICAL EXPRESSION
+// Condition -> Operand RelationOP Operand | Operand
+void Condition(){}
+
+// Operand -> Identifier | Num | Character
+void Operand()
+{
+    if (Token::look.token == IDENTIFIER)
+        Identifier();
+    else if (Token::look.token == NUMBER)
+        Num();
+    else if (Token::look.token == CONST_LITERAL)
+        Character();
+    else
+        throw "Invalid Tok";
+}
+
+// LOOPS
+// WhileLoop -> while Condition :  { AnyCode }
+void WhileLoop()
+{
+    match("while");
+    Condition();
+    match(":");
+    match("{");
+    AnyCode();
+    match("}");
+
+
+}
+
+// I/O
+// PrintStatement -> PrintType ( Operand ) | PrintType ( String )
+// PrintType -> print | println
+void printType()
+{
+    if (Token::look.lexeme == "print" || Token::look.lexeme == "println")
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    else
+        throw "Invalid tok, expected print";
+
+}
+
+// InputStatement -> In >> Identifier
+void InputStatement()
+{
+    match("In");
+    match(">>");
+    Identifier();
+}
+// BRANCHES
+// IFStatement -> IF Elif Else
+void IfStatement()
+{
+    IF();
+    Elif();
+    Else();
+}
+
+// IF -> if Condition : { AnyCode }
+void IF()
+{
+    IF();
+    Condition();
+    match(":");
+    match("{");
+    AnyCode();
+    match("}");
+}
+
+// Else -> else { AnyCode } | ^
+void Else()
+{
+    if (Token::look.lexeme == "else"){
+        Else();
+        match("{");
+        AnyCode();
+        match("}");
+    }
+    else;
+}
+
+// Elif -> elif Condition : { AnyCode } Elif | ^
+void Elif()
+{
+    if (Token::look.lexeme == "elif"){
+        Elif();
+        Condition();
+        match(":");
+        match("{");
+        AnyCode();
+        match("}");
+        Elif();
+    }
+    else;
+
+}
+
+// RETURN
+// RetStatement -> ret Return`
+void RetStatement(){}
+// Return` -> Exp | Condition
+void ReturnPrime(){}
+// TOKENS
+// DataType -> integer | char
+void DataType()
+{
+    // match lexemes for data type
+    if (Token::look.lexeme == "char" || Token::look.lexeme == "Integer")
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    else
+        throw "Invalid tok";
+}
+
+// Identifier -> [identifier lexeme]
+void Identifier()
+{
+    if (Token::look.token == IDENTIFIER)
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    else
+        throw "Invalid tok";
+}
+
+// Num -> [num lexeme]
+void Num()
+{
+    if (Token::look.token == NUMBER)
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    else
+        throw "Invalid tok";
+}
+
+// Character -> [char lexeme]
+void Character()
+{
+    if (Token::look.token == CONST_LITERAL){
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    }
+    else
+        throw "Invalid tok";
+}
+
+// RelationOP -> > | < | >= |  <= |  /= | =
+void RelationOP()
+{
+    if (Token::look.token == RELATION_OPS){
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    }
+    else
+        throw "Invalid tok";
+
+}
+
+// String -> [string lexeme]
+void String()
+{
+    if (Token::look.token == STRING)
+        Token::look = next_token(Token::file_iter, Token::file_end);
+    else
+        throw "Invalid tok";
+}
+
+
+
+
+
+
 int main()
 {
     string file_path;
@@ -299,41 +655,12 @@ int main()
     }
 
     string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    Token::file_begin = str.begin();
+    Token::file_begin = Token::file_iter = str.begin();
+    Token::file_end = str.end();
 
-    int token_count = 0;
-    for (Token::file_iter = str.begin(); Token::file_iter != str.end(); Token::file_iter++)
-    {
-        // ignore white spaces in the source file
-        if (*Token::file_iter == ' ' || *Token::file_iter == '\n' || *Token::file_iter == '\t')
-        {
-            if (*Token::file_iter == '\n')
-            {
-                Token::curr_line++;
-                Token::curr_col = std::distance(Token::file_begin, Token::file_iter); // num of chars from start to new line
-                Token::tab_space = 1;   // reset tab spaces counter
-            }
+    Token::look = next_token(Token::file_iter, Token::file_end);
 
-            if (*Token::file_iter == '\t')
-                Token::tab_space += 3;  // inc column location according to 4-spaces tabs
 
-            continue;
-        }
-
-        // collect next token
-        token_count += 1;
-        Token my_token = next_token(Token::file_iter, str.end());
-        if (my_token.token == INVALID)
-        {
-            cout << "[ln: " << my_token.curr_line << ", col: " << my_token.col << "] Token: " << my_token.to_string() << endl;
-            cout << "Exiting ... " << endl;
-            return 1;
-        }
-        cout << my_token.to_string() << endl;
-        word_file << my_token.to_string() << endl;
-    }
-
-    cout << "Total number of tokens: " << token_count << endl;
 
     return 0;
 }
