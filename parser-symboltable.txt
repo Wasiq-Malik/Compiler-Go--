@@ -1,0 +1,9 @@
+	Identifier : Data Type
+	a : char
+	first : Integer
+	i : Integer
+	j : Integer
+	length : Integer
+	num : Integer
+	numPrint : Integer
+	temp : Integer

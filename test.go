@@ -13,7 +13,7 @@ func Integer: numPrint (Integer: num, Integer: length)
 		j := 1;
 		while j < i:
 		{
-			print(j);
+			write(j);
 			j := j + 1;
 		}
 		if j = 1:{
