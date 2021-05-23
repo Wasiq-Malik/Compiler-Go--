@@ -289,6 +289,7 @@ Token next_token(string::iterator &curr, const string::iterator end)
     }
 }
 
+// peek one token ahead current token
 Token peek_token()
 {
     string::iterator temp = Token::file_iter;
