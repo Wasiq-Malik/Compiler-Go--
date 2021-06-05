@@ -1,8 +1,9 @@
-a : char
-first : Integer
-i : Integer
-j : Integer
-length : Integer
-num : Integer
-numPrint : Integer
-temp : Integer
+Integer : num : 0
+Integer : length : 4
+Integer : i : 8
+Integer : j : 12
+Integer : first : 16
+Integer : temp : 20
+char : a : 24
+char : b : 25
+Integer : c : 26

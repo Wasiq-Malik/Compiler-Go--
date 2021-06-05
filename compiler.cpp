@@ -6,7 +6,7 @@
 #include <fstream>
 #include <string>
 #include "lexer.h"
-#include "parser.h"
+#include "translator.h"
 
 using namespace std;
 
@@ -43,10 +43,16 @@ int main()
     // start lexer
     Token::look = next_token(Token::file_iter, Token::file_end);
 
-    // start parser
-    ParserWrapper();
+    // generate TAC
+    Translator();
+
     write_symbol_table();
-    parse_tree.close();
+    write_TAC();
+
+    // print three address code
+    for (int i = 0 ; i < TAC.size(); i++)
+        cout<<TAC[i]<<endl;
+
 
     // verify if complete file has been parsed
     if (Token::file_iter != Token::file_end)
