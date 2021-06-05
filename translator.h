@@ -62,9 +62,8 @@ int emit(string s)
     string output = to_string(tacLineCounter) + ") " + s;
 
     TAC.push_back(output);
-    tacLineCounter++;
 
-    return tacLineCounter - 1;
+    return tacLineCounter++;
 }
 
 string newTemp()
