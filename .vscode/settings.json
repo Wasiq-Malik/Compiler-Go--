@@ -5,6 +5,9 @@
         "iosfwd": "cpp",
         "utility": "cpp",
         "map": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "vector": "cpp",
+        "tuple": "cpp",
+        "unordered_map": "cpp"
     }
 }

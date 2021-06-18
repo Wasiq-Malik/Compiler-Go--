@@ -43,6 +43,7 @@ int main()
     // start lexer
     Token::look = next_token(Token::file_iter, Token::file_end);
 
+    intialise_opcodes();
     // generate TAC
     Translator();
 
@@ -52,6 +53,11 @@ int main()
     // print three address code
     for (int i = 0 ; i < TAC.size(); i++)
         cout<<TAC[i]<<endl;
+
+    cout << "----------------------------"<< endl;
+    // print three address code
+    for (int i = 0 ; i < quad.size(); i++)
+        cout<< i + 1 << ") " << get<0>(quad[i]) << " " << get<1>(quad[i]) << " " << get<2>(quad[i]) << " " << get<3>(quad[i]) <<endl;
 
 
     // verify if complete file has been parsed

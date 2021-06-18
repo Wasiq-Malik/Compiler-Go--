@@ -8,6 +8,7 @@
 #include <string>
 #include <ctype.h>
 #include <iterator>
+#include <unordered_map>
 #include <map>
 #include "lexer.h"
 
@@ -35,12 +36,12 @@ string Identifier();
 void Statement();
 void MultiDec(string);
 string Operand();
-string LogicalOperand();
-string ConditionPrime();
+void LogicalOperand(vector<string>&);
+void ConditionPrime(vector<string>&);
 string PrintType();
 string PrintPrime();
-void IF();
-void Elif();
+void IF(vector<int> &);
+void Elif(vector<int> &);
 void Else();
 void VariableDec();
 void VarAssign();
@@ -51,11 +52,95 @@ void CallParams();
 void MultiCallParams();
 
 // globals
-vector<tuple<string, string, int>> symbols;
-int tacLineCounter = 1;
-int tacTempCounter = 0;
 int varAddress = 0;
 vector<string> TAC;
+int tacLineCounter = 1;
+int tacTempCounter = 0;
+vector<tuple<int,int,int,int>> quad;
+unordered_map<string, int> opcode_table;
+unordered_map<string, tuple<string, int, int>> symbols;
+
+void intialise_opcodes()
+{
+    opcode_table[":="] = 1;
+    opcode_table["+"] = 2;
+    opcode_table["-"] = 3;
+    opcode_table["*"] = 4;
+    opcode_table["/"] = 5;
+    opcode_table["in"] = 6;
+    opcode_table["out"] = 7;
+    opcode_table["="] = 8;
+    opcode_table[">="] = 9;
+    opcode_table["<="] = 10;
+    opcode_table[">"] = 11;
+    opcode_table["<"] = 12;
+    opcode_table["goto"] = 13;
+    opcode_table["outln"] = 14;
+}
+
+string newTemp()
+{
+    return "t" + to_string(++tacTempCounter);
+}
+
+// helper function
+void throw_exception(string caller_error)
+{
+
+    cout << "[ln: " << Token::look.curr_line << ", col: " << Token::look.col << "] " << caller_error << endl;
+    exit(1);
+}
+
+// symbol table generation
+void write_symbol_table()
+{
+    ofstream symbol_table("parser-symboltable.txt");
+
+    // write symbols in file
+    unordered_map<string, tuple<string, int, int>>::iterator itr;
+    for (itr = symbols.begin(); itr != symbols.end(); ++itr)
+        symbol_table << itr->first << " : " << get<0>(itr->second) << " : " << get<1>(itr->second) << " : " << get<2>(itr->second) << '\n';
+
+    symbol_table.close();
+}
+
+void add_to_symbol_table(string type, string name, int size, int initial_value)
+{
+    if (symbols.find(name) == symbols.end())
+        symbols[name] = make_tuple(type, varAddress, initial_value);
+    else
+        throw_exception("Re-declaration found for'" + name + "'");
+
+    varAddress += size;
+}
+
+void write_quads(){}
+
+int add_to_quads(int opcode, int op1, int op2, int op3)
+{
+    quad.push_back(make_tuple(opcode, op1, op2, op3));
+    return quad.size();
+}
+
+bool isNumber(const string& str)
+{
+    for (char const &c : str) {
+        if (std::isdigit(c) == 0) return false;
+    }
+    return true;
+}
+
+string handle_numeric_constants(string s)
+{
+    if(isNumber(s))
+    {
+        string tempName = newTemp();
+        add_to_symbol_table("Integer", tempName, 4, stoi(s));
+        return tempName;
+    }
+    else
+        return s;
+}
 
 int emit(string s)
 {
@@ -66,10 +151,6 @@ int emit(string s)
     return tacLineCounter++;
 }
 
-string newTemp()
-{
-    return "t" + to_string(++tacTempCounter);
-}
 
 void backpatch(int lineNo, int value)
 {
@@ -80,22 +161,14 @@ void write_TAC()
 {
     ofstream three_address_code("TAC.txt");
 
-     // write symbols in file
-     vector<string> ::iterator itr;
-     for (itr = TAC.begin(); itr != TAC.end(); ++itr)
-        three_address_code << *itr<< '\n';
+    // write symbols in file
+    vector<string>::iterator itr;
+    for (itr = TAC.begin(); itr != TAC.end(); ++itr)
+        three_address_code << *itr << '\n';
 
-     three_address_code.close();
+    three_address_code.close();
 }
 
-
-// helper function
-void throw_exception(string caller_error)
-{
-
-    cout << "[ln: " << Token::look.curr_line << ", col: " << Token::look.col << "] " << caller_error << endl;
-    exit(1);
-}
 
 // parse tree generation functions
 int tabs = 0;
@@ -116,27 +189,6 @@ void PrintTabs(string s)
     parse_tree << s << endl;
 }
 
-// symbol table generation
-void write_symbol_table()
-{
-     ofstream symbol_table("parser-symboltable.txt");
-
-     // write symbols in file
-     vector<tuple<string, string, int>> ::iterator itr;
-     for (itr = symbols.begin(); itr != symbols.end(); ++itr)
-        symbol_table << get<0>(*itr) << " : " << get<1>(*itr) << " : " << get<2>(*itr) << '\n';
-
-
-     symbol_table.close();
-}
-
-void add_to_symbol_table(string name, string type, int size)
-{
-    symbols.push_back(make_tuple(name, type, varAddress));
-    // cout << "name: " << name << " type: " << type << " size: " << varAddress << endl;
-
-    varAddress += size;
-}
 
 // parser code
 void Translator()
@@ -305,7 +357,7 @@ void Variable()
     Identifier();
     tabs--;
 
-    add_to_symbol_table(dtype, id, size);
+    add_to_symbol_table(dtype, id, size, 0);
 }
 
 // AnyCode -> Statement ; AnyCode | ^
@@ -408,7 +460,7 @@ string Exp()
 
     tabs--;
 
-    return secondTerm;
+    return  secondTerm;
 }
 
 // Exp` -> + Term Exp` | - Term Exp` | ^
@@ -419,32 +471,38 @@ string ExpPrime(string previous)
     tabs++;
     if (Token::look.lexeme == "+")
     {
-        string term = "";
         PrintTabs("+");
         match("+");
-        term += "+";
 
         PrintTabs("Term");
-        term += Term();
+        string term = Term();
+
+        previous = handle_numeric_constants(previous);
+        term = handle_numeric_constants(term);
 
         string tempName = newTemp();
-        emit(tempName + ":=" + previous + term);
+        emit(tempName + ":=" + previous + "+" + term);
+        add_to_symbol_table("Integer", tempName, 4, 0);
+        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
 
         PrintTabs("ExpPrime");
         retVal = ExpPrime(tempName);
     }
     else if (Token::look.lexeme == "-")
     {
-        string term = "";
         PrintTabs("-");
         match("-");
-        term += "-";
 
         PrintTabs("Term");
-        term += Term();
+        string term = Term();
+
+        previous = handle_numeric_constants(previous);
+        term = handle_numeric_constants(term);
 
         string tempName = newTemp();
-        emit(tempName + ":=" + previous + term);
+        emit(tempName + ":=" + previous + "-" + term);
+        add_to_symbol_table("Integer", tempName, 4, 0);
+        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
 
         PrintTabs("ExpPrime");
         retVal = ExpPrime(tempName);
@@ -482,32 +540,38 @@ string TermPrime(string previous)
     tabs++;
     if (Token::look.lexeme == "*")
     {
-        string term = "";
         PrintTabs("*");
         match("*");
-        term += "*";
 
         PrintTabs("F");
-        term += F();
+        string term = F();
+
+        previous = handle_numeric_constants(previous);
+        term = handle_numeric_constants(term);
 
         string tempName = newTemp();
-        emit(tempName + ":=" + previous + term);
+        emit(tempName + ":=" + previous + "*" + term);
+        add_to_symbol_table("Integer", tempName, 4, 0);
+        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
 
         PrintTabs("TermPrime");
         retVal = TermPrime(tempName);
     }
     else if (Token::look.lexeme == "/")
     {
-        string term = "";
         PrintTabs("/");
         match("/");
-        term += "/";
 
         PrintTabs("F");
-        term += F();
+        string term = F();
+
+        previous = handle_numeric_constants(previous);
+        term = handle_numeric_constants(term);
 
         string tempName = newTemp();
-        emit(tempName + ":=" + previous + term);
+        emit(tempName + ":=" + previous + "/" + term);
+        add_to_symbol_table("Integer", tempName, 4, 0);
+        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
 
         PrintTabs("TermPrime");
         retVal = TermPrime(tempName);
@@ -584,7 +648,7 @@ void MultiDec(string curr_dtype)
 
         // save current declaration in symbol table
         string id = Token::look.lexeme;
-        add_to_symbol_table(curr_dtype, id, size);
+        add_to_symbol_table(curr_dtype, id, size, 0);
 
         Identifier();
 
@@ -611,7 +675,9 @@ void VarAssign()
     PrintTabs("Operand");
     string op = Operand();
 
+    op = handle_numeric_constants(op);
     emit(id + ":=" + op);
+    add_to_quads(opcode_table[":="], get<1>(symbols[op]), get<1>(symbols[id]), 0);
     tabs--;
 }
 
@@ -621,12 +687,6 @@ string Operand()
     tabs++;
     if (Token::look.token == CONST_LITERAL)
         return Character();
-    else if (Token::look.token == IDENTIFIER && peek_token().lexeme == "(")
-    {
-        PrintTabs("FunctionCall");
-        FunctionCall();
-        return "func TAC not implemented.";
-    }
     else
     {
         PrintTabs("Exp");
@@ -637,61 +697,51 @@ string Operand()
 
 // LOGICAL EXPRESSION
 // Condition -> LogicalOperand ConditionPrime
-string Condition()
+vector<string> Condition()
 {
-    string retVal = "";
+    vector<string> retVal;
     tabs++;
 
     PrintTabs("LogicalOperand");
-    retVal += LogicalOperand();
+    LogicalOperand(retVal);
 
     PrintTabs("ConditionPrime");
-    retVal += ConditionPrime();
+    ConditionPrime(retVal);
     tabs--;
 
     return retVal;
 }
 
 // ConditionPrime -> RelationOP LogicalOperand | ^
-string ConditionPrime()
+void ConditionPrime(vector<string>& retVal)
 {
-    string retVal = "";
     tabs++;
     if (Token::look.token == RELATION_OPS)
     {
-        retVal += RelationOP();
+        retVal.push_back(RelationOP());
 
         PrintTabs("LogicalOperand");
-        retVal += LogicalOperand();
+        LogicalOperand(retVal);
     }
     else
         PrintTabs("^");
 
     tabs--;
-    return retVal;
 }
 
 // LogicalOperand -> Identifier | Num | Character
-string LogicalOperand()
+void LogicalOperand(vector<string>& retVal)
 {
     tabs++;
     if (Token::look.token == IDENTIFIER)
-    {
-        tabs--;
-        return Identifier();
-    }
+        retVal.push_back(Identifier());
     else if (Token::look.token == NUMBER)
-    {
-        tabs--;
-        return Num();
-    }
+        retVal.push_back(Num());
     else if (Token::look.token == CONST_LITERAL)
-    {
-        tabs--;
-        return Character();
-    }
+        retVal.push_back(Character());
     else
         throw_exception("Invalid Logical operand found.");
+    tabs--;
 }
 
 // LOOPS
@@ -703,15 +753,23 @@ void WhileLoop()
     match("while");
 
     PrintTabs("Condition");
-    string conditionString = Condition();
+    vector<string> conditionString = Condition();
 
     PrintTabs(":");
     match(":");
     PrintTabs("{");
     match("{");
 
-    emit("if " + conditionString + " goto " + to_string(tacLineCounter + 2));
+    string op1 = handle_numeric_constants(conditionString[0]);
+    string ro = conditionString[1];
+    string op2 = handle_numeric_constants(conditionString[2]);
+
+    int nextLine = tacLineCounter + 2;
+    emit("if " + op1 + ro + op2  + " goto " + to_string(nextLine));
+    add_to_quads(opcode_table[ro], get<1>(symbols[op1]), get<1>(symbols[op2]), nextLine);
+
     int whileStart = emit("goto ");
+    int quadStart = add_to_quads(opcode_table["goto"], 0, 0, 0);
 
     PrintTabs("AnyCode");
     AnyCode();
@@ -720,7 +778,11 @@ void WhileLoop()
     match("}");
 
     emit("goto " + to_string(whileStart - 1));
+    add_to_quads(opcode_table["goto"], quadStart - 1, 0, 0);
+
     backpatch(whileStart, tacLineCounter);
+    quad[quadStart - 1] = make_tuple(opcode_table["goto"], tacLineCounter, 0, 0);
+
     tabs--;
 }
 
@@ -743,9 +805,13 @@ void PrintStatement()
     match(")");
 
     emit("out " + op);
+    add_to_quads(opcode_table["out"], get<1>(symbols[op]), 0, 0);
 
     if (type == "println")
-        emit("out '\\n'");
+    {
+        emit("outln");
+        add_to_quads(opcode_table["outln"], 0, 0, 0);
+    }
 
     tabs--;
 }
@@ -780,6 +846,7 @@ void InputStatement()
     string id = Identifier();
 
     emit("in " + id);
+    add_to_quads(opcode_table["in"], get<1>(symbols[id]), 0, 0);
     tabs--;
 }
 
@@ -787,26 +854,41 @@ void InputStatement()
 // IFStatement -> IF Elif Else
 void IfStatement()
 {
+    vector<int> else_patch;
+
     tabs++;
     PrintTabs("IF");
-    IF();
+    IF(else_patch);
     PrintTabs("Elif");
-    Elif();
+    Elif(else_patch);
     PrintTabs("Else");
     Else();
     tabs--;
+
+    for (int i = 0; i < else_patch.size(); i++)
+    {
+        backpatch(else_patch[i], tacLineCounter);
+        quad[else_patch[i]-1] = make_tuple(opcode_table["goto"], tacLineCounter, 0, 0);
+    }
 }
 
 // IF -> if Condition : { AnyCode }
-void IF()
+void IF(vector<int> &else_patch)
 {
     tabs++;
     PrintTabs("if");
     match("if");
 
     PrintTabs("Condition");
-    string conditionString = Condition();
-    emit("if " + conditionString + " goto " + to_string(tacLineCounter + 2));
+    vector<string> conditionString = Condition();
+
+    string op1 = handle_numeric_constants(conditionString[0]);
+    string ro = conditionString[1];
+    string op2 = handle_numeric_constants(conditionString[2]);
+
+    int nextLine = tacLineCounter + 2;
+    emit("if " + op1 + ro + op2 + " goto " + to_string(nextLine));
+    add_to_quads(opcode_table[ro], get<1>(symbols[op1]), get<1>(symbols[op2]), nextLine);
 
     PrintTabs(":");
     match(":");
@@ -814,13 +896,18 @@ void IF()
     PrintTabs("{");
     match("{");
     int ifFalse = emit("goto ");
+    int quadFalse = add_to_quads(opcode_table["goto"], 0, 0, 0);
 
     PrintTabs("AnyCode");
     AnyCode();
+    else_patch.push_back(emit("goto "));
+    add_to_quads(opcode_table["goto"], 0, 0, 0);
 
     PrintTabs("}");
     match("}");
     backpatch(ifFalse, tacLineCounter);
+    quad[quadFalse - 1] = make_tuple(opcode_table["goto"], tacLineCounter, 0, 0);
+
     tabs--;
 }
 
@@ -849,7 +936,7 @@ void Else()
 }
 
 // Elif -> elif Condition : { AnyCode } Elif | ^
-void Elif()
+void Elif(vector<int> &else_patch)
 {
     tabs++;
     if (Token::look.lexeme == "elif")
@@ -858,8 +945,17 @@ void Elif()
         match("elif");
 
         PrintTabs("Condition");
-        string conditionString = Condition();
-        emit("if " + conditionString + " goto " + to_string(tacLineCounter + 2));
+        vector<string> conditionString = Condition();
+
+
+        string op1 = handle_numeric_constants(conditionString[0]);
+        string ro = conditionString[1];
+        string op2 = handle_numeric_constants(conditionString[2]);
+
+        int nextLine = tacLineCounter + 2;
+        emit("if " + op1 + ro + op2 + " goto " + to_string(nextLine));
+        add_to_quads(opcode_table[ro], get<1>(symbols[op1]), get<1>(symbols[op2]), nextLine);
+
 
         PrintTabs(":");
         match(":");
@@ -867,15 +963,22 @@ void Elif()
         match("{");
 
         int ifFalse = emit("goto ");
+        int quadFalse = add_to_quads(opcode_table["goto"], 0, 0, 0);
+
         PrintTabs("AnyCode");
         AnyCode();
+        else_patch.push_back(emit("goto "));
+        add_to_quads(opcode_table["goto"], 0, 0, 0);
 
         PrintTabs("}");
         match("}");
+
         backpatch(ifFalse, tacLineCounter);
+        quad[quadFalse - 1] = make_tuple(opcode_table["goto"], tacLineCounter, 0, 0);
+
 
         PrintTabs("Elif");
-        Elif();
+        Elif(else_patch);
     }
     else
     {
@@ -896,7 +999,6 @@ void RetStatement()
     PrintTabs("Operand");
     string op = Operand();
 
-    emit("ret " + op);
     tabs--;
 }
 

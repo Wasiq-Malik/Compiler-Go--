@@ -1,25 +1,27 @@
 func Integer: numPrint (Integer: num, Integer: length)
 {
 	Integer: i, j, first, temp;
-	char : a;
-	char : b;
 	Integer : c;
-	a := 'x';
+
+	c := 20 + num * (length + 1) - i / j; /* arithmatic expression */
 	print ( "enter number" );
 	In >> i;
 	println (i);
 	i := length;
-	while i > 0 :
+	while i > 5 :
 	{
 		first:= 0;
 		j := 1;
-		while j < i:
-		{
-			print(j);
-			j := j + 1;
-		}
 		if j = 1:{
+
 			print("one");
+
+			if i = 1:{
+				print("nested if");
+			}
+			elif i = 2:{
+				print("nested elif");
+			}
 		}
 		elif j = 2:{
 			print("two");

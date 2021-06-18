@@ -1,30 +1,38 @@
-1) a:='x'
-2) out "enter number"
-3) in i
-4) out i
-5) out '\n'
-6) i:=length
-7) if i>0 goto 9
-8) goto 27
-9) first:=0
-10) j:=1
-11) if j<i goto 13
-12) goto 17
-13) out j
-14) t1:=j+1
-15) j:=t1
-16) goto 11
-17) if j=1 goto 19
-18) goto 20
-19) out "one"
-20) if j=2 goto 22
-21) goto 23
-22) out "two"
-23) out "others"
-24) t2:=i-1
-25) i:=t2
-26) goto 7
-27) out "temp is"
-28) out temp
-29) out '\n'
-30) ret i
+1) t2:=length+t1
+2) t3:=num*t2
+3) t5:=t4+t3
+4) t6:=i/j
+5) t7:=t5-t6
+6) c:=t7
+7) out "enter number"
+8) in i
+9) out i
+10) outln
+11) i:=length
+12) if i>t8 goto 14
+13) goto 36
+14) first:=t9
+15) j:=t10
+16) if j=t11 goto 18
+17) goto 28
+18) out "one"
+19) if i=t12 goto 21
+20) goto 23
+21) out "nested if"
+22) goto 27
+23) if i=t13 goto 25
+24) goto 27
+25) out "nested elif"
+26) goto 27
+27) goto 33
+28) if j=t14 goto 30
+29) goto 32
+30) out "two"
+31) goto 33
+32) out "others"
+33) t16:=i-t15
+34) i:=t16
+35) goto 12
+36) out "temp is"
+37) out temp
+38) outln

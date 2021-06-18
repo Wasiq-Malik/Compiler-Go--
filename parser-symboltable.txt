@@ -1,9 +1,30 @@
-Integer : num : 0
-Integer : length : 4
-Integer : i : 8
-Integer : j : 12
-Integer : first : 16
-Integer : temp : 20
-char : a : 24
-char : b : 25
-Integer : c : 26
+num : Integer : 0 : 0
+j : Integer : 12 : 0
+"temp is" :  : 0 : 0
+length : Integer : 4 : 0
+i : Integer : 8 : 0
+t8 : Integer : 56 : 5
+first : Integer : 16 : 0
+temp : Integer : 20 : 0
+t10 : Integer : 64 : 1
+c : Integer : 24 : 0
+t1 : Integer : 28 : 1
+t2 : Integer : 32 : 0
+t3 : Integer : 36 : 0
+t4 : Integer : 40 : 20
+"nested elif" :  : 0 : 0
+t5 : Integer : 44 : 0
+t6 : Integer : 48 : 0
+"enter number" :  : 0 : 0
+t7 : Integer : 52 : 0
+t9 : Integer : 60 : 0
+t11 : Integer : 68 : 1
+"one" :  : 0 : 0
+t12 : Integer : 72 : 1
+"nested if" :  : 0 : 0
+t13 : Integer : 76 : 2
+t14 : Integer : 80 : 2
+"two" :  : 0 : 0
+"others" :  : 0 : 0
+t15 : Integer : 84 : 1
+t16 : Integer : 88 : 0
