@@ -7,6 +7,7 @@
 #include <string>
 #include "lexer.h"
 #include "translator.h"
+#include "VM.h"
 
 using namespace std;
 
@@ -43,19 +44,20 @@ int main()
     // start lexer
     Token::look = next_token(Token::file_iter, Token::file_end);
 
+    // generate TAC and machine-code
     intialise_opcodes();
-    // generate TAC
     Translator();
 
+    // save output to files
     write_symbol_table();
     write_TAC();
+    write_quads();
 
-    // print three address code
+    cout << "-------------THREE-ADDRESS CODE---------------"<< endl;
     for (int i = 0 ; i < TAC.size(); i++)
         cout<<TAC[i]<<endl;
 
-    cout << "----------------------------"<< endl;
-    // print three address code
+    cout << "-------------MACHINE CODE---------------"<< endl;
     for (int i = 0 ; i < quad.size(); i++)
         cout<< i + 1 << ") " << get<0>(quad[i]) << " " << get<1>(quad[i]) << " " << get<2>(quad[i]) << " " << get<3>(quad[i]) <<endl;
 
@@ -68,5 +70,12 @@ int main()
     }
 
     cout << "Compiling Successful." << endl;
+
+    cout<<"[VM] executing code ..." <<endl;
+
+    execute_machine_code(quad, symbols);
+
+    cout<<"[VM] exiting ..." <<endl;
+
     return 0;
 }

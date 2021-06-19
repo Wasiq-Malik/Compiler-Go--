@@ -1,34 +1,32 @@
 func Integer: numPrint (Integer: num, Integer: length)
 {
+	num := 1000;
+	length := 5;
+
 	Integer: i, j, first, temp;
 	Integer : c;
 
-	c := 20 + num * (length + 1) - i / j; /* arithmatic expression */
-	print ( "enter number" );
+	temp := 999;
+	c := 20 + num * (length + 1); /* arithmatic expression */
+	println(c);
+
 	In >> i;
-	println (i);
-	i := length;
-	while i > 5 :
+	println(i);
+
+	while i > 0 :
 	{
-		first:= 0;
-		j := 1;
-		if j = 1:{
 
-			print("one");
+		if i = 1:{
 
-			if i = 1:{
-				print("nested if");
-			}
-			elif i = 2:{
-				print("nested elif");
-			}
+			println(100);
+
 		}
-		elif j = 2:{
-			print("two");
+		elif i = 2:{
+			println(200);
 		}
 		else
 		{
-			print("others");
+			println(i);
 		}
 
 		/* this is a comment */
@@ -40,7 +38,6 @@ func Integer: numPrint (Integer: num, Integer: length)
 
 	}
 
-	print("temp is");
 	println(temp);
 	ret i;
 }

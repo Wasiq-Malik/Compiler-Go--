@@ -114,7 +114,24 @@ void add_to_symbol_table(string type, string name, int size, int initial_value)
     varAddress += size;
 }
 
-void write_quads(){}
+int get_symbol_address(string s)
+{
+    if(symbols.find(s) != symbols.end())
+        return get<1>(symbols[s]);
+    else
+        throw_exception("No such symbol found:'" + s + "'");
+}
+
+void write_quads()
+{
+    ofstream machine_code("machine-code.txt");
+
+    // write symbols in file
+    for (int i = 0 ; i < quad.size(); i++)
+        machine_code<< i + 1 << ") " << get<0>(quad[i]) << " " << get<1>(quad[i]) << " " << get<2>(quad[i]) << " " << get<3>(quad[i]) <<endl;
+
+    machine_code.close();
+}
 
 int add_to_quads(int opcode, int op1, int op2, int op3)
 {
@@ -483,7 +500,7 @@ string ExpPrime(string previous)
         string tempName = newTemp();
         emit(tempName + ":=" + previous + "+" + term);
         add_to_symbol_table("Integer", tempName, 4, 0);
-        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
+        add_to_quads(opcode_table["+"], get_symbol_address(previous), get_symbol_address(term), get_symbol_address(tempName));
 
         PrintTabs("ExpPrime");
         retVal = ExpPrime(tempName);
@@ -502,7 +519,7 @@ string ExpPrime(string previous)
         string tempName = newTemp();
         emit(tempName + ":=" + previous + "-" + term);
         add_to_symbol_table("Integer", tempName, 4, 0);
-        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
+        add_to_quads(opcode_table["-"], get_symbol_address(previous), get_symbol_address(term), get_symbol_address(tempName));
 
         PrintTabs("ExpPrime");
         retVal = ExpPrime(tempName);
@@ -552,7 +569,7 @@ string TermPrime(string previous)
         string tempName = newTemp();
         emit(tempName + ":=" + previous + "*" + term);
         add_to_symbol_table("Integer", tempName, 4, 0);
-        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
+        add_to_quads(opcode_table["*"], get_symbol_address(previous), get_symbol_address(term), get_symbol_address(tempName));
 
         PrintTabs("TermPrime");
         retVal = TermPrime(tempName);
@@ -571,7 +588,7 @@ string TermPrime(string previous)
         string tempName = newTemp();
         emit(tempName + ":=" + previous + "/" + term);
         add_to_symbol_table("Integer", tempName, 4, 0);
-        add_to_quads(opcode_table["+"], get<1>(symbols[previous]), get<1>(symbols[term]), get<1>(symbols[tempName]));
+        add_to_quads(opcode_table["/"], get_symbol_address(previous), get_symbol_address(term), get_symbol_address(tempName));
 
         PrintTabs("TermPrime");
         retVal = TermPrime(tempName);
@@ -677,7 +694,7 @@ void VarAssign()
 
     op = handle_numeric_constants(op);
     emit(id + ":=" + op);
-    add_to_quads(opcode_table[":="], get<1>(symbols[op]), get<1>(symbols[id]), 0);
+    add_to_quads(opcode_table[":="], get_symbol_address(op), get_symbol_address(id), 0);
     tabs--;
 }
 
@@ -766,7 +783,7 @@ void WhileLoop()
 
     int nextLine = tacLineCounter + 2;
     emit("if " + op1 + ro + op2  + " goto " + to_string(nextLine));
-    add_to_quads(opcode_table[ro], get<1>(symbols[op1]), get<1>(symbols[op2]), nextLine);
+    add_to_quads(opcode_table[ro], get_symbol_address(op1), get_symbol_address(op2), nextLine);
 
     int whileStart = emit("goto ");
     int quadStart = add_to_quads(opcode_table["goto"], 0, 0, 0);
@@ -804,8 +821,9 @@ void PrintStatement()
     PrintTabs(")");
     match(")");
 
+    op = handle_numeric_constants(op);
     emit("out " + op);
-    add_to_quads(opcode_table["out"], get<1>(symbols[op]), 0, 0);
+    add_to_quads(opcode_table["out"], get_symbol_address(op), 0, 0);
 
     if (type == "println")
     {
@@ -846,7 +864,7 @@ void InputStatement()
     string id = Identifier();
 
     emit("in " + id);
-    add_to_quads(opcode_table["in"], get<1>(symbols[id]), 0, 0);
+    add_to_quads(opcode_table["in"], get_symbol_address(id), 0, 0);
     tabs--;
 }
 
@@ -888,7 +906,7 @@ void IF(vector<int> &else_patch)
 
     int nextLine = tacLineCounter + 2;
     emit("if " + op1 + ro + op2 + " goto " + to_string(nextLine));
-    add_to_quads(opcode_table[ro], get<1>(symbols[op1]), get<1>(symbols[op2]), nextLine);
+    add_to_quads(opcode_table[ro], get_symbol_address(op1), get_symbol_address(op2), nextLine);
 
     PrintTabs(":");
     match(":");
@@ -954,8 +972,7 @@ void Elif(vector<int> &else_patch)
 
         int nextLine = tacLineCounter + 2;
         emit("if " + op1 + ro + op2 + " goto " + to_string(nextLine));
-        add_to_quads(opcode_table[ro], get<1>(symbols[op1]), get<1>(symbols[op2]), nextLine);
-
+        add_to_quads(opcode_table[ro], get_symbol_address(op1), get_symbol_address(op2), nextLine);
 
         PrintTabs(":");
         match(":");
