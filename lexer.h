@@ -233,6 +233,7 @@ Token next_token(string::iterator &curr, const string::iterator end)
             switch (next_char)
             {
             case '=':
+                curr++;
                 return Token(RELATION_OPS, "/=");
             case '*':
                 // skip the comments

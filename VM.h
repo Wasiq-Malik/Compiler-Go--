@@ -125,6 +125,14 @@ void execute_machine_code(vector<tuple<int, int, int, int>> &quad, unordered_map
         case 14:
             cout  << endl;
             break;
+        case 15:
+            s1 = get<1>(quad[pc]) / 4;
+            s2 = get<2>(quad[pc]) / 4;
+            d = get<3>(quad[pc]);
+
+            if (ds[s1] != ds[s2])
+                pc = d - 2;
+            break;
         }
     }
 }

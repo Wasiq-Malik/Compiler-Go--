@@ -15,6 +15,8 @@ func Integer: numPrint (Integer: num, Integer: length)
 
 	while i > 0 :
 	{
+		/* this is a comment */
+		i:= i - 1;
 
 		if i = 1:{
 
@@ -28,9 +30,6 @@ func Integer: numPrint (Integer: num, Integer: length)
 		{
 			println(i);
 		}
-
-		/* this is a comment */
-		i:= i - 1;
 
 		/*This is a
 		Multiline

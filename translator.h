@@ -76,6 +76,7 @@ void intialise_opcodes()
     opcode_table["<"] = 12;
     opcode_table["goto"] = 13;
     opcode_table["outln"] = 14;
+    opcode_table["/="] = 15;
 }
 
 string newTemp()

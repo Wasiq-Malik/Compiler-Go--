@@ -53,10 +53,6 @@ int main()
     write_TAC();
     write_quads();
 
-    cout << "-------------THREE-ADDRESS CODE---------------"<< endl;
-    for (int i = 0 ; i < TAC.size(); i++)
-        cout<<TAC[i]<<endl;
-
     cout << "-------------MACHINE CODE---------------"<< endl;
     for (int i = 0 ; i < quad.size(); i++)
         cout<< i + 1 << ") " << get<0>(quad[i]) << " " << get<1>(quad[i]) << " " << get<2>(quad[i]) << " " << get<3>(quad[i]) <<endl;

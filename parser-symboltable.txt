@@ -15,8 +15,8 @@ t5 : Integer : 44 : 0
 t6 : Integer : 48 : 0
 t7 : Integer : 52 : 20
 t9 : Integer : 60 : 0
-t11 : Integer : 68 : 100
-t12 : Integer : 72 : 2
-t13 : Integer : 76 : 200
-t14 : Integer : 80 : 1
-t15 : Integer : 84 : 0
+t11 : Integer : 68 : 0
+t12 : Integer : 72 : 1
+t13 : Integer : 76 : 100
+t14 : Integer : 80 : 2
+t15 : Integer : 84 : 200

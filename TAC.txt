@@ -12,20 +12,20 @@
 12) outln
 13) if i>t9 goto 15
 14) goto 30
-15) if i=t10 goto 17
-16) goto 20
-17) out t11
-18) outln
-19) goto 27
-20) if i=t12 goto 22
-21) goto 25
-22) out t13
-23) outln
-24) goto 27
-25) out i
-26) outln
-27) t15:=i-t14
-28) i:=t15
+15) t11:=i-t10
+16) i:=t11
+17) if i=t12 goto 19
+18) goto 22
+19) out t13
+20) outln
+21) goto 29
+22) if i=t14 goto 24
+23) goto 27
+24) out t15
+25) outln
+26) goto 29
+27) out i
+28) outln
 29) goto 13
 30) out temp
 31) outln
